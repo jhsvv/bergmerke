@@ -1,14 +1,125 @@
 <!doctype html>
 <html lang="nn">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bergmerke · Fotoinspeksjon</title>
-<link rel="stylesheet" href="style.css">
-<header><div class="brand">◭ BERGMERKE <span>Fotoinspeksjon</span></div><label class="upload">＋ Vel bilete<input id="photo" type="file" accept="image/*"></label></header>
-<main><aside><p class="eyebrow">VERKTØY</p><h1>Frå foto til tiltak.</h1><p class="intro">Marker sikringsbehov direkte på biletet frå felt.</p><label class="field">Registrering<select id="registration"><option value="simple">Enkel</option><option value="advanced">Avansert · geologimal</option></select></label><div id="tools"></div><label class="field">Tekstmerknad<input id="note" maxlength="160" placeholder="Skriv merknad …"></label><label class="field">Symbolstorleik <input id="size" type="range" min="12" max="64" value="28"></label><p class="privacy">Biletet blir behandla på denne eininga. Ingen bilete blir lasta opp.</p></aside>
-<section class="workspace"><div class="bar"><span id="filename">Ingen bilete valt</span><span id="count">0 objekt</span></div><div class="edit-bar"><div id="editTools"></div><span id="modeHint"></span></div><div id="viewport"><div id="empty"><div class="mountain">◭</div><h2>Eit foto. Eit tydeleg tiltak.</h2><p>Vel eit bilete øvst for å starte.<br>JPEG, PNG og andre format nettlesaren støttar.</p></div><canvas id="canvas" hidden aria-label="Bilete med inspeksjonsmarkeringar"></canvas></div><div class="actions"><button id="finish" disabled>Fullfør figur</button><button id="cancel" disabled>Avbryt figur</button><button id="undo" disabled>↶ Angre</button><label>Zoom <select id="zoom"><option value="1">Tilpass</option><option value="1.5">150 %</option><option value="2">200 %</option><option value="3">300 %</option></select></label><button id="removeLegend" disabled>Fjern teiknforklaring</button><label>Eksportstorleik <select id="resolution"><option value="0.5">Halv breidd / høgd</option><option value="1">Full storleik</option></select></label><label>Format <select id="format"><option value="image/jpeg">JPEG · komprimert</option><option value="image/png">PNG</option></select></label><button class="primary" id="export" disabled>Lagre bilete ↓</button></div><p id="status" role="status" aria-live="polite">Vel eit bilete. Deretter vel du eit verktøy og trykkjer på biletet.</p><p class="hint">Linje og polygon: trykk for kvart hjørne, deretter «Fullfør figur». Klyp med to fingrar for zoom. Dra for å panorere. Vel «Flytt / rediger» rett over biletet for å dra objekt med zoom og panorering låst. Halv breidd og høgd gir ein firedel av pikslane.</p><div id="result"></div></section></main>
-<script src="advanced-symbols.js"></script><script src="app.js"></script>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Bergmerke</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <!-- Toppfelt: appnamn og val av bilete frå eininga. -->
+    <header>
+      <div class="brand">◭ BERGMERKE</div>
+      <label class="upload">
+        ＋ Vel bilete
+        <input id="photo" type="file" accept="image/*">
+      </label>
+    </header>
+
+    <main>
+      <!-- Symbolknappane i tools blir laga automatisk av app.js. -->
+      <aside>
+        <p class="eyebrow">VERKTØY</p>
+        <p class="intro">Marker sikringsbehov direkte på biletet.</p>
+        <label class="field">
+          Registrering
+          <select id="registration">
+            <option value="simple">Enkel</option>
+            <option value="advanced">Avansert · geologimal</option>
+          </select>
+        </label>
+        <div id="tools"></div>
+        <label class="field">
+          Tekstmerknad
+          <input id="note" maxlength="160" placeholder="Skriv merknad …">
+        </label>
+        <label class="field">
+          Symbolstorleik
+          <input id="size" type="range" min="12" max="64" value="28">
+        </label>
+        <p class="privacy">
+          Biletet blir behandla på denne eininga. Ingen bilete blir lasta opp.
+        </p>
+      </aside>
+
+      <!-- Foto, markeringar, navigering og eksport. -->
+      <section class="workspace">
+        <div class="bar">
+          <span id="filename">Ingen bilete valt</span>
+          <span id="count">0 objekt</span>
+        </div>
+        <!-- Panorer, Flytt / rediger og Plasser teiknforklaring kjem frå app.js. -->
+        <div class="edit-bar">
+          <div id="editTools"></div>
+          <span id="modeHint"></span>
+        </div>
+        <div id="viewport">
+          <div id="empty">
+            <div class="mountain">◭</div>
+            <h2>Vel eit bilete.</h2>
+            <p>
+              Bruk knappen øverst for å legge til bilete.<br>
+              JPEG, PNG og andre format nettlesaren støttar.
+            </p>
+          </div>
+          <!-- Teikneflata blir synleg når eit foto er lasta inn. -->
+          <canvas
+            id="canvas"
+            hidden
+            aria-label="Bilete med inspeksjonsmarkeringar"
+          ></canvas>
+        </div>
+
+        <!-- value-felta blir lesne av app.js. Behald id ved endring av tekst. -->
+        <div class="actions">
+          <button id="finish" disabled>Fullfør figur</button>
+          <button id="cancel" disabled>Avbryt figur</button>
+          <button id="undo" disabled>↶ Angre</button>
+          <label>
+            Zoom
+            <select id="zoom">
+              <option value="1">Tilpass</option>
+              <option value="1.5">150 %</option>
+              <option value="2">200 %</option>
+              <option value="3">300 %</option>
+            </select>
+          </label>
+          <button id="removeLegend" disabled>Fjern teiknforklaring</button>
+          <label>
+            Eksportstorleik
+            <select id="resolution">
+              <!-- 0.5 gir halv breidd og høgd, altså ein firedel av pikslane. -->
+              <option value="1">Full storleik</option>
+              <option value="0.5">Halv breidd / høgd</option>
+            </select>
+          </label>
+          <label>
+            Format
+            <select id="format">
+              <option value="image/jpeg">JPEG · komprimert</option>
+              <option value="image/png">PNG</option>
+            </select>
+          </label>
+          <button class="primary" id="export" disabled>Lagre bilete ↓</button>
+        </div>
+
+        <!-- app.js oppdaterer status, også for skjermlesarar. -->
+        <p id="status" role="status" aria-live="polite">
+          Vel eit bilete. Deretter vel du eit verktøy og trykkjer på biletet.
+        </p>
+        <p class="hint">
+          Linje og polygon: trykk for kvart hjørne, deretter «Fullfør figur».
+          Klyp med to fingrar for zoom. Dra for å panorere.
+          Vel «Flytt / rediger» rett over biletet for å dra objekt med zoom og
+          panorering låst. Halv breidd og høgd gir ein firedel av pikslane.
+        </p>
+        <!-- Nedlastingslenkje og ferdig eksportbilete blir sette inn her. -->
+        <div id="result"></div>
+      </section>
+    </main>
+
+    <!-- Symboldata må lastast før app.js. -->
+    <script src="advanced-symbols.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>
-
-
-
-
