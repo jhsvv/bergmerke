@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="nn">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bergmerke · Fotoinspeksjon</title>
+<link rel="stylesheet" href="style.css">
+<header><div class="brand">◭ BERGMERKE <span>Fotoinspeksjon</span></div><label class="upload">＋ Vel bilete<input id="photo" type="file" accept="image/*"></label></header>
+<main><aside><p class="eyebrow">VERKTØY</p><h1>Frå foto til tiltak.</h1><p class="intro">Marker sikringsbehov direkte på biletet frå felt.</p><div id="tools"></div><label class="field">Tekstmerknad<input id="note" maxlength="160" placeholder="Skriv merknad …"></label><label class="field">Symbolstorleik <input id="size" type="range" min="12" max="64" value="28"></label><p class="privacy">Biletet blir behandla på denne eininga. Ingen bilete blir lasta opp.</p></aside>
+<section class="workspace"><div class="bar"><span id="filename">Ingen bilete valt</span><span id="count">0 objekt</span></div><div id="viewport"><div id="empty"><div class="mountain">◭</div><h2>Eit foto. Eit tydeleg tiltak.</h2><p>Vel eit bilete øvst for å starte.<br>JPEG, PNG og andre format nettlesaren støttar.</p></div><canvas id="canvas" hidden aria-label="Bilete med inspeksjonsmarkeringar"></canvas></div><div class="actions"><button id="finish" disabled>Fullfør figur</button><button id="cancel" disabled>Avbryt figur</button><button id="undo" disabled>↶ Angre</button><label>Zoom <select id="zoom"><option value="1">Tilpass</option><option value="1.5">150 %</option><option value="2">200 %</option><option value="3">300 %</option></select></label><button class="primary" id="export" disabled>Lagre PNG ↓</button></div><p id="status" role="status" aria-live="polite">Vel eit bilete. Deretter vel du eit verktøy og trykkjer på biletet.</p><p class="hint">Linje og polygon: trykk for kvart hjørne, deretter «Fullfør figur». Ved zoom kan du rulle biletet med fingeren.</p><div id="result"></div></section></main>
+<script src="app.js"></script>
+</html>
