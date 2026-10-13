@@ -27,3 +27,13 @@ Dette prosjektet krev ingen byggjesteg. Bruk relative filstiar slik at sida fung
 - Bruk bileteformat nettlesaren kan lese. HEIC-støtte varierer.
 - Prøv kamera, orientering, zoom, nedlasting og vedlegg i Field Maps på dei faktiske iOS-/Android-einingane før feltbruk.
 - Ei publisert nettside krev nett ved første lasting; ho er ikkje ei offline-PWA.
+
+## Zoom, flytting og komprimering
+
+Klyp med to fingrar i biletflata for zoom (1–6 gonger). Dra på bakgrunnen for å panorere. Vel «Vel / flytt» og dra eit punkt, ein tekst, ei linje eller eit polygon. Treff kanten eller innsida for polygon. Angre reverserer også flytting. Zoommenyen er framleis tilgjengeleg.
+
+Standard eksport er JPEG med kvalitet 82 % og halv breidd/høgd av arbeidsbiletet. Det gir ein firedel av pikslane, men ikkje nødvendigvis halv filstorleik. Arbeidsbiletet har framleis maksimalt 4096 pikslar på lengste side. Vel full storleik eller PNG ved behov. Eksporten viser mål og filstorleik. Originalfila blir ikkje endra.
+
+Dette erstattar dei tidlegare avgrensingane om manglande objektflytting og berre PNG-eksport. Test klypezoom på fysisk mobil før feltbruk.
+
+Flytt / rediger er no plassert rett over teikneområdet. I denne modusen er klypezoom, zoommenyen og panorering låst. Dra objekt med éin finger. To fingrar avbryt ei pågåande flytting. Trykk knappen igjen (eller vel eit teikneverktøy) for å låse opp zoom og panorering.

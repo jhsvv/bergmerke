@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const definitions = [
-  ['move','Vel / flytt','↔','#18372f','move'],
+  ['move','Flytt / rediger','↔','#18372f','move'],
   ['cleanArea','Rensk av område','▱','#d36bd1','polygon'],
   ['clean','Rensk','R','#ff0000','point'],
   ['bolt','Bolt','▲','#ff0000','point'],
@@ -20,16 +20,19 @@ for(const [id,label,symbol,color] of definitions){
   const button=document.createElement('button'); button.type='button';
   const icon=document.createElement('span');icon.className='symbol';icon.textContent=symbol;icon.style.color=id==='text'?'#18372f':color;
   button.append(icon,document.createTextNode(label));button.dataset.tool=id;
-  button.onclick=()=>{pending=[];selected=null;tool=id;update();render();};$('tools').append(button);
+  button.onclick=()=>{pending=[];selected=null;tool=tool==='move'&&id==='move'?'bolt':id;pointers.clear();gesture=null;update();render();};$(id==='move'?'editTools':'tools').append(button);
 }
 function definition(id){return definitions.find(d=>d[0]===id);}
 function update(){
+  $('zoom').disabled=tool==='move';
+  $('viewport').style.overflow=tool==='move'?'hidden':'auto';
+  $('modeHint').textContent=tool==='move'?'Zoom og panorering er låst. Dra eit objekt. Trykk knappen igjen for å teikne.':'Klyp for zoom · dra bakgrunnen for å panorere';
   document.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===tool)));
   $('finish').disabled=!image||pending.length<(definition(tool)[4]==='polygon'?3:2);
   $('cancel').disabled=!pending.length;$('undo').disabled=!history.length&&!pending.length;$('export').disabled=!image||!!pending.length;
   $('count').textContent=`${objects.length} objekt`;
   if(image)$('status').textContent=pending.length?`${pending.length} hjørne. Legg til fleire eller fullfør figuren.`:`${definition(tool)[1]}: ${tool==='text'?'skriv merknad og trykk på biletet.':definition(tool)[4]==='point'?'trykk for å plassere symbol.':'trykk for å leggje til hjørne.'}`;
-  if(image&&tool==='move')$('status').textContent='Dra eit objekt for å flytte det. Dra på tom bakgrunn for å panorere. Klyp med to fingrar for å zoome.';
+  if(image&&tool==='move')$('status').textContent='Dra eit objekt for å flytte det. Zoom og panorering er låst.';
 }
 function draw(c,o){
   const [, , ,color,kind]=definition(o.tool),s=o.size,p=o.points[0];
@@ -78,12 +81,19 @@ function hit(p){
 function pinchStart(){const [a,b]=[...pointers.values()],r=viewport.getBoundingClientRect();const x=(a.x+b.x)/2,y=(a.y+b.y)/2;gesture={type:'pinch',distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom,anchor:position(x,y),left:r.left,top:r.top};}
 viewport.addEventListener('pointerdown',e=>{
   if(!image||e.button!==0)return;e.preventDefault();viewport.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pointers.size>=2){pinchStart();return;}
+  if(pointers.size>=2){
+    if(tool==='move'){
+      if(gesture?.type==='single'&&gesture.moved&&gesture.index!==null){objects[gesture.index].points=gesture.original;history.pop();render();update();}
+      gesture={type:'blocked'};return;
+    }
+    pinchStart();return;
+  }
   const p=position(e.clientX,e.clientY);selected=tool==='move'?hit(p):null;
   gesture={type:'single',x:e.clientX,y:e.clientY,p,left:viewport.scrollLeft,top:viewport.scrollTop,index:selected,original:selected===null?null:objects[selected].points.map(p=>({...p})),moved:false};
 });
 viewport.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId)||!gesture)return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(gesture.type==='blocked')return;
   if(gesture.type==='pinch'){
     const [a,b]=[...pointers.values()];if(!b)return;zoom=Math.max(1,Math.min(6,gesture.zoom*Math.hypot(a.x-b.x,a.y-b.y)/gesture.distance));layout();
     const scale=canvas.getBoundingClientRect().width/canvas.width;viewport.scrollLeft=gesture.anchor.x*scale-((a.x+b.x)/2-gesture.left);viewport.scrollTop=gesture.anchor.y*scale-((a.y+b.y)/2-gesture.top);$('zoom').value='';return;
@@ -93,11 +103,11 @@ viewport.addEventListener('pointermove',e=>{
   if(g.index!==null){const scale=canvas.width/canvas.getBoundingClientRect().width;let x=dx*scale,y=dy*scale;
     x=Math.max(-Math.min(...g.original.map(p=>p.x)),Math.min(x,canvas.width-Math.max(...g.original.map(p=>p.x))));y=Math.max(-Math.min(...g.original.map(p=>p.y)),Math.min(y,canvas.height-Math.max(...g.original.map(p=>p.y))));
     objects[g.index].points=g.original.map(p=>({x:p.x+x,y:p.y+y}));render();update();
-  }else{viewport.scrollLeft=g.left-dx;viewport.scrollTop=g.top-dy;}
+  }else if(tool!=='move'){viewport.scrollLeft=g.left-dx;viewport.scrollTop=g.top-dy;}
 });
 function endPointer(e){
   if(!pointers.has(e.pointerId))return;const g=gesture;pointers.delete(e.pointerId);
-  if(g?.type==='pinch'){if(!pointers.size)gesture=null;return;}
+  if(g?.type==='pinch'||g?.type==='blocked'){if(!pointers.size)gesture=null;return;}
   gesture=null;if(e.type==='pointercancel'){if(g?.moved&&g.index!==null){objects[g.index].points=g.original;history.pop();render();update();}return;}
   if(!g||g.moved||tool==='move')return;
   const p=position(e.clientX,e.clientY);if(p.x<0||p.y<0||p.x>canvas.width||p.y>canvas.height)return;
@@ -107,10 +117,11 @@ function endPointer(e){
   }else pending.push(p);render();update();
 }
 viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',endPointer);
+viewport.addEventListener('wheel',e=>{if(tool==='move')e.preventDefault();},{passive:false});
 $('finish').onclick=()=>{const minimum=definition(tool)[4]==='polygon'?3:2;if(pending.length<minimum)return;remember();objects.push({tool,points:pending,size:symbolSize()});pending=[];render();update();};
 $('cancel').onclick=()=>{pending=[];render();update();};
 $('undo').onclick=()=>{if(pending.length)pending.pop();else if(history.length)objects=JSON.parse(history.pop());selected=null;render();update();};
-$('size').oninput=render;$('zoom').onchange=()=>{zoom=Number($('zoom').value)||zoom;layout();};window.addEventListener('resize',layout);
+$('size').oninput=render;$('zoom').onchange=()=>{if(tool==='move')return;zoom=Number($('zoom').value)||zoom;layout();};window.addEventListener('resize',layout);
 $('export').onclick=()=>{
   if(!image||pending.length)return;
   const output=document.createElement('canvas'),factor=Number($('resolution').value),format=$('format').value;
