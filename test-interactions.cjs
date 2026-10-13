@@ -7,19 +7,24 @@ function element(id) {
   return elements[id] ??= {
     value: ({size:'28', resolution:'0.5', format:'image/jpeg'})[id] || '',
     style: {}, dataset: {}, clientWidth:1000, clientHeight:600, scrollLeft:0, scrollTop:0,
-    append(){}, replaceChildren(){}, setAttribute(){}, click(){}, focus(){}, setPointerCapture(){},
+    append(){}, prepend(){}, replaceChildren(){}, setAttribute(){}, click(){}, focus(){}, setPointerCapture(){},
     addEventListener(k,f){handlers[id+':'+k]=f;},
     getBoundingClientRect(){return {left:0,top:0,width:1000,height:600};},
     getContext(){return ctx;},
+    toDataURL(){return 'data:image/png;base64,test';},
     toBlob(fn,type,quality){this.exported={type,quality};fn({size:100000});}
   };
 }
+let created=0;
+function createElement(tag){const result=element(`${tag}-${created++}`);elements[tag]=result;return result;}
 const sandbox = {
-  document:{getElementById:element, createElement:element, createTextNode:s=>s, querySelectorAll:()=>[]},
+  document:{body:{append(){}},getElementById:element, createElement, createTextNode:s=>s, querySelectorAll:()=>[]},
+  Image:class {naturalWidth=60;naturalHeight=60;complete=true;},
   window:{addEventListener(){}}, URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}}
 };
 vm.createContext(sandbox);
 const run = source => vm.runInContext(source, sandbox);
+run(fs.readFileSync('advanced-symbols.js','utf8'));
 run(fs.readFileSync('app.js','utf8'));
 run('image={};canvas.width=2000;canvas.height=1200;objects=[{tool:"bolt",points:[{x:200,y:200}],size:40}];tool="move";');
 function pointer(type,id,x,y){handlers['viewport:'+type]({type,pointerId:id,clientX:x,clientY:y,button:0,preventDefault(){}});}
@@ -53,9 +58,73 @@ assert.equal(run('zoom'),2);
 pointer('pointerup',1,100,100);
 pointer('pointerup',2,300,100);
 assert.equal(run('objects.length'),1);
+function wheel(deltaY,deltaMode=0){handlers['viewport:wheel']({clientX:500,clientY:300,deltaY,deltaMode,preventDefault(){}});}
+wheel(-100);
+assert.ok(run('zoom')>2);
+wheel(100);
+assert.ok(Math.abs(run('zoom')-2)<1e-9);
+run('tool="move";');
+wheel(-100);
+assert.ok(Math.abs(run('zoom')-2)<1e-9);
+run('tool="bolt";');
+for(let i=0;i<10;i++)wheel(-1000);
+assert.equal(run('zoom'),6);
+for(let i=0;i<10;i++)wheel(1000);
+assert.equal(run('zoom'),1);
 elements.export.onclick();
 assert.equal(elements.canvas.width,1000);
 assert.equal(elements.canvas.height,600);
 assert.equal(elements.canvas.exported.type,'image/jpeg');
 assert.equal(elements.canvas.exported.quality,0.82);
-console.log('PASS: object drag and undo; zoom/pan locked in edit mode; pinch restored in drawing mode; half-resolution JPEG export');
+run('objects=[{tool:"advanced0",size:40,points:[{x:100,y:100}]},{tool:"advanced0",size:40,points:[{x:200,y:100}]},{tool:"advanced20",size:40,points:[{x:300,y:100}]},{tool:"text",text:"test",size:40,points:[{x:400,y:100}]}];');
+assert.equal(run('legendEntries().length'),2);
+assert.equal(run('exportImage(.5,false).height'),600);
+assert.ok(run('buildLegend().height')>0);
+run('tool="pan";');
+pointer('pointerdown',1,100,100);pointer('pointerup',1,100,100);
+assert.equal(run('objects.length'),4);
+run('tool="pan";updateCursor();');
+assert.equal(run('canvas.style.cursor'),'grab');
+pointer('pointerdown',1,500,300);pointer('pointermove',1,550,320);
+assert.equal(run('canvas.style.cursor'),'grabbing');
+pointer('pointerup',1,550,320);
+assert.equal(run('canvas.style.cursor'),'grab');
+run('tool="move";updateCursor();');
+assert.equal(run('canvas.style.cursor'),'move');
+run('tool="legendPlace";updateCursor();');
+assert.equal(run('canvas.style.cursor'),'copy');
+run('tool="bolt";updateCursor();');
+assert.ok(run('canvas.style.cursor').startsWith('url('));
+run('tool="advanced0";updateCursor();');
+assert.ok(run('canvas.style.cursor').startsWith('url('));
+run('tool="legendPlace";');
+pointer('pointerdown',1,100,100);pointer('pointerup',1,100,100);
+assert.equal(run('legendPlacement.x'),200);
+assert.equal(run('tool'),'pan');
+elements.removeLegend.onclick();
+assert.equal(run('legendPlacement'),null);
+elements.undo.onclick();
+assert.equal(run('legendPlacement.x'),200);
+assert.ok(run('advancedSymbols.every(d=>d[2].every(src=>src.startsWith("data:image/png;base64,")))'));
+run('tool="move";');
+pointer('pointerdown',1,110,110);pointer('pointermove',1,160,140);pointer('pointerup',1,160,140);
+assert.equal(run('legendPlacement.x'),300);
+assert.equal(run('legendPlacement.y'),260);
+assert.equal(run('objects[0].points[0].x'),100);
+elements.undo.onclick();
+assert.equal(run('legendPlacement.x'),200);
+pointer('pointerdown',1,110,110);pointer('pointermove',1,160,140);pointer('pointercancel',1,160,140);
+assert.equal(run('legendPlacement.x'),200);
+pointer('pointerdown',1,110,110);pointer('pointermove',1,160,140);pointer('pointerdown',2,180,140);
+assert.equal(run('legendPlacement.x'),200);
+pointer('pointerup',1,160,140);pointer('pointerup',2,180,140);
+pointer('pointerdown',1,110,110);pointer('pointermove',1,3000,3000);pointer('pointerup',1,3000,3000);
+assert.ok(run('legendPlacement.x+legendBounds().w<=canvas.width'));
+assert.ok(run('legendPlacement.y+legendBounds().h<=canvas.height'));
+elements.registration.value='advanced';elements.registration.onchange();
+assert.equal(run('tool'),'advanced0');
+assert.equal(run('objects.length'),4);
+elements.registration.value='simple';elements.registration.onchange();
+assert.equal(run('tool'),'bolt');
+assert.equal(run('objects.length'),4);
+console.log('PASS: drag, undo, pinch, mouse wheel zoom and limits, edit mode lock, JPEG export');

@@ -37,3 +37,29 @@ Standard eksport er JPEG med kvalitet 82 % og halv breidd/høgd av arbeidsbilete
 Dette erstattar dei tidlegare avgrensingane om manglande objektflytting og berre PNG-eksport. Test klypezoom på fysisk mobil før feltbruk.
 
 Flytt / rediger er no plassert rett over teikneområdet. I denne modusen er klypezoom, zoommenyen og panorering låst. Dra objekt med éin finger. To fingrar avbryt ei pågåande flytting. Trykk knappen igjen (eller vel eit teikneverktøy) for å låse opp zoom og panorering.
+
+Musehjul over biletflata zoomar rundt musepeikaren: opp for inn, ned for ut (1–6 gonger). Zoom er framleis låst i Flytt / rediger.
+
+## Registreringsmodus og teiknforklaring
+
+Vel Enkel eller Avansert over verktøya. Avansert brukar symbol frå geologimalen, inkludert 21 boltvariantar med lengd og diameter. Dei innebygde biletsymbola er henta ut frå Word; dei andre formene blir teikna med canvas. Avgrensingane blir plasserte som to endemerke: vel start og slutt, så Fullfør figur. Endemerka og boreretningssymbolet har fast retning frå malen. Faktisk staglengd kan skrivast som tekstmerknad.
+
+Malen har eit avvik: teksten for 2,4 m Ø32 seier lilla, medan symbolet er gult. Appen brukar det gule symbolet.
+
+Modusbyte beheld eksisterande objekt, men avbryt ei ufullført figur. Kryss av Teiknforklaring på biletet for å få eit kvitt felt under fotoet med berre brukte symboltypar, utan duplikat. Tekstmerknader har inga eiga rad. Valet fungerer med JPEG og PNG.
+
+Ved oppdatering av GitHub Pages: last opp index.html, app.js, style.css, advanced-symbols.js og heile symbols/-mappa. Word-fila, reference-media/, testar og førehandsvisingar skal ikkje publiserast.
+
+## Lokal lagring, panorering og plassering av teiknforklaring
+
+Avanserte biletsymbol er no innebygde som data-URL-ar i advanced-symbols.js. Dette unngår at separate file://-bilete gjer canvas utilgjengeleg for eksport. Ha index.html, style.css, app.js og advanced-symbols.js i same mappe, og opne index.html på nytt etter oppdatering. symbols/-mappa er ikkje lenger nødvendig for køyring.
+
+Panorer er standard ved oppstart og ligg rett over teikneområdet. Trykk i denne modusen legg ikkje til markeringar. Dra for panorering; klyp eller bruk musehjul for zoom.
+
+Plasser teiknforklaring blir tilgjengeleg når minst ein symboltype er brukt. Trykk knappen og så der øvre venstre hjørne skal vere. Panelet blir halde innanfor biletet og er synleg før eksport. Trykk knappen på nytt for ny plassering. Fjern teiknforklaring tek det bort; Angre reverserer plassering og fjerning. Panelet oppdaterer seg med brukte symbol. Det tidlegare avkryssingsvalet og feltet under fotoet er erstatta av dette.
+
+Eksporten inneheld same teiknforklaring som førehandsvisinga. Om automatisk nedlasting blir blokkert, bruk den synlege nedlastingslenkja eller lagre førehandsvisingsbiletet. Eksportfeil blir viste i statusfeltet.
+
+Musepeikaren viser valt symbol i teiknemodus, open/lukka hand ved panorering, flyttepeikar ved redigering og plasseringspeikar for teiknforklaring. Symbolpeikaren har treffpunkt midt i symbolet. Dersom eigendefinert peikar ikkje blir støtta, blir eit trådkross brukt. Dette gjeld mus/peikeflate; berøringsskjerm viser normalt ingen peikar.
+
+Teiknforklaringa kan også dragast etter plassering: vel Flytt / rediger og dra panelet. Det blir halde innanfor biletet. Angre reverserer flyttinga, og avbroten berøring eller to fingrar avbryt flyttinga.

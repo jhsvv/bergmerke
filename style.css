@@ -3,3 +3,6 @@
 #viewport{touch-action:none}canvas{touch-action:none}
 
 .edit-bar{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}.edit-bar button{display:flex;align-items:center;gap:8px}.edit-bar button[aria-pressed=true]{border-color:#215c47;background:#e1ebdf;box-shadow:inset 3px 0 #215c47}#modeHint{font-size:12px;color:#65766d}
+[data-tool][hidden]{display:none!important}.symbol img{width:30px;height:30px;object-fit:contain}.symbol:has(img){background:#d9ded6;border-radius:3px}#registration{width:100%;margin-top:8px}body:has(#registration option[value=advanced]:checked) #tools{max-height:420px;overflow:auto}
+
+#editTools{display:flex;gap:8px;flex-wrap:wrap}
