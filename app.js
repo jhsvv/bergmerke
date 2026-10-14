@@ -365,10 +365,16 @@ function drawPlacedLegend(c){
   const bounds=legendBounds();if(!bounds)return;
   const {panel,x,y,w,h}=bounds;c.drawImage(panel,x,y,w,h);
 }
-$('legendScale').oninput=()=>{
+// input gir oppdatering medan ein drar; change dekkjer også nettlesarar
+// som først melder verdien når draginga er ferdig.
+function updateLegendScale(){
   $('legendScaleValue').textContent=`${$('legendScale').value} %`;
   render();
-};
+}
+$('legendScale').oninput=updateLegendScale;
+$('legendScale').onchange=updateLegendScale;
+// Nettlesaren kan hugse førre verdi ved oppfrisking av sida.
+$('legendScaleValue').textContent=`${$('legendScale').value} %`;
 // EKSPORT
 // Lag ei separat teikneflate i valt oppløysing. factor=0.5 gir halv breidd/høgd.
 // Zoom på skjermen påverkar ikkje eksporten; arbeidsfotoet blir brukt direkte.
