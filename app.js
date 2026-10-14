@@ -287,36 +287,43 @@ function legendEntries(){return [...new Set(objects.filter(o=>o.tool!=='text').m
 function isCountedBolt(id) {
   return id === 'bolt' || id === 'advanced31' || /^advanced([0-9]|1[0-9]|20)$/.test(id);
 }
+// Stag finst som både enkel og avansert markering; tel dei separat frå boltar.
+function isCountedRod(id) {
+  return id === 'rod' || id === 'advRod';
+}
 function legendSummary() {
   const counts = new Map();
   for (const object of objects) counts.set(object.tool, (counts.get(object.tool) || 0) + 1);
   const rows = legendEntries().map(d => ({
     d,
-    label: isCountedBolt(d[0]) ? `${d[1]} (${counts.get(d[0])} stk.)` : d[1]
+    label: isCountedBolt(d[0]) || isCountedRod(d[0]) ? `${d[1]} (${counts.get(d[0])} stk.)` : d[1]
   }));
   const total = objects.filter(object => isCountedBolt(object.tool)).length;
-  return { rows, total };
+  const totalRods = objects.filter(object => isCountedRod(object.tool)).length;
+  return { rows, total, totalRods };
 }
 // Mål teksten med same skrifttype som ved teikning. Panelet får akkurat
 // den breidda innhaldet treng, inkludert symbolfelt, overskrift og marg.
 // legendBounds() krympar panelet dersom det elles ville gått utanfor fotoet.
 function buildLegend() {
   const output = document.createElement('canvas');
-  const { rows, total } = legendSummary();
+  const { rows, total, totalRods } = legendSummary();
   const font = Math.max(13, Math.round(canvas.width / 68));
   const pad = font, rowHeight = font * 2.4, textX = pad * 4.5;
   const heading = 'Teiknforklaring';
-  const footer = `Totalt tal boltar: ${total} stk.`;
+  const footers = [`Totalt tal boltar: ${total} stk.`];
+  if (totalRods > 0) footers.push(`Totalt tal stag: ${totalRods} stk.`);
   const measure = output.getContext('2d');
   measure.font = `${font}px system-ui`;
   const rowWidth = Math.max(0, ...rows.map(row => measure.measureText(row.label).width));
   measure.font = `bold ${font}px system-ui`;
-  const titleWidth = Math.max(measure.measureText(heading).width, measure.measureText(footer).width);
+  const titleWidth = Math.max(measure.measureText(heading).width, ...footers.map(text => measure.measureText(text).width));
   output.width = Math.ceil(Math.max(textX + rowWidth + pad, titleWidth + pad * 2));
-  output.height = Math.ceil(pad * 4 + font * 2 + rows.length * rowHeight);
+  output.height = Math.ceil(pad * 4 + font * 2 + rows.length * rowHeight + (footers.length - 1) * rowHeight);
 
   const out = output.getContext('2d');
-  out.fillStyle = '#fff';
+  // Berre bakgrunnen er halvvegs gjennomsiktig; tekst og symbol er uendra.
+  out.fillStyle = 'rgba(255, 255, 255, 0.5)';
   out.fillRect(0, 0, output.width, output.height);
   out.font = `bold ${font}px system-ui`;
   out.fillStyle = '#18372f';
@@ -324,7 +331,7 @@ function buildLegend() {
   let y = pad * 2 + font;
   for (const { d, label } of rows) {
     const size = font * 1.25, h = rowHeight;
-    out.fillStyle = '#e7eae5';
+    out.fillStyle = 'rgba(231, 234, 229, 0.5)';
     out.fillRect(pad, y, pad * 2.6, h - pad / 3);
     const points = d[4] === 'point'
       ? [{ x: pad * 2.3, y: y + h / 2 }]
@@ -340,7 +347,7 @@ function buildLegend() {
   }
   out.font = `bold ${font}px system-ui`;
   out.fillStyle = '#18372f';
-  out.fillText(footer, pad, y + pad + font);
+  footers.forEach((text, index) => out.fillText(text, pad, y + pad + font + index * rowHeight));
   return output;
 }
 // Rekn ut faktisk plassering/storleik; krymp og avgrens panelet til fotoet.
