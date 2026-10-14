@@ -63,3 +63,7 @@ Eksporten inneheld same teiknforklaring som førehandsvisinga. Om automatisk ned
 Musepeikaren viser valt symbol i teiknemodus, open/lukka hand ved panorering, flyttepeikar ved redigering og plasseringspeikar for teiknforklaring. Symbolpeikaren har treffpunkt midt i symbolet. Dersom eigendefinert peikar ikkje blir støtta, blir eit trådkross brukt. Dette gjeld mus/peikeflate; berøringsskjerm viser normalt ingen peikar.
 
 Teiknforklaringa kan også dragast etter plassering: vel Flytt / rediger og dra panelet. Det blir halde innanfor biletet. Angre reverserer flyttinga, og avbroten berøring eller to fingrar avbryt flyttinga.
+
+Teiknforklaringa tilpassar no breidda til lengste namn (inkludert tal), overskrift eller totalrad, pluss symbolfelt og marg. Kvar enkeltbolttype viser tal i parentes. Totalen nedst tel enkle boltpunkt, dei 21 avanserte boltvariantane og bolt med boreretning. Boltesikringspolygon og eksisterande boltar er ikkje med i talet på nye boltar. Tala blir oppdaterte frå markeringane, også etter Angre.
+
+Slett objekt ligg ved sida av Flytt / rediger. Vel knappen og trykk på objektet du vil slette. Berre det øvste trefte objektet blir sletta; tom bakgrunn og draging gjer ingenting. Teiknforklaringa kan også slettast slik. Angre gjenopprettar sletta objekt, og bolttal/teiknforklaring blir oppdaterte automatisk. Zoom og panorering er låst i slettemodus. Trykk Slett objekt igjen eller Panorer for å gå ut av modusen.

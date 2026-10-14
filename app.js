@@ -10,7 +10,7 @@
  *   4096  = maksimal lengste side på arbeidsfotoet, i pikslar.
  *   0.82  = JPEG-kvalitet ved eksport (0–1; påverkar ikkje PNG).
  *   60    = maksimalt tal steg i angrehistorikken.
- *   .38   = breidda på teiknforklaringa som del av fotobreidda.
+ *   / 68  = skriftstorleik i teiknforklaringa relativt til fotobreidda.
  * Zoom blir avgrensa til 1–6 i både klypezoom og musehjul.
  *
  * Alt blir behandla lokalt. Arbeidet er i minnet fram til eksport;
@@ -27,6 +27,7 @@ const definitions = [
   ['pan','Panorer','✋','#18372f','action'],
   ['legendPlace','Plasser teiknforklaring','▤','#18372f','action'],
   ['move','Flytt / rediger','↔','#18372f','move'],
+  ['delete','Slett objekt','⌫','#b32929','action'],
   ['cleanArea','Rensk av område','▱','#d36bd1','polygon'],
   ['clean','Rensk','R','#ff0000','point'],
   ['bolt','Bolt','▲','#ff0000','point'],
@@ -64,7 +65,7 @@ for(const [id,label,symbol,color] of definitions){
   const icon=document.createElement('span');icon.className='symbol';icon.textContent=symbol;icon.style.color=id==='text'?'#18372f':color;
   if(definition(id)[5]){const preview=document.createElement('img');preview.src=definition(id)[5][0];preview.alt='';icon.append(preview);}
   button.append(icon,document.createTextNode(label));button.dataset.tool=id;
-  button.onclick=()=>{pending=[];selected=null;tool=tool==='move'&&id==='move'?'pan':id;pointers.clear();gesture=null;update();render();};$(id==='move'||definition(id)[4]==='action'?'editTools':'tools').append(button);
+  button.onclick=()=>{pending=[];selected=null;tool=tool===id&&['move','delete'].includes(id)?'pan':id;pointers.clear();gesture=null;update();render();};$(id==='move'||definition(id)[4]==='action'?'editTools':'tools').append(button);
 }
 // Finn definisjonen til eit verktøy ut frå den stabile interne id-en.
 function definition(id){return definitions.find(d=>d[0]===id);}
@@ -77,6 +78,7 @@ function updateCursor(){
   if(!image)cursor='default';
   else if(tool==='pan')cursor=gesture?.type==='single'&&gesture.moved?'grabbing':'grab';
   else if(tool==='move')cursor='move';
+  else if(tool==='delete')cursor='not-allowed';
   else if(tool==='legendPlace')cursor='copy';
   else{
     if(!cursorCache.has(tool)){
@@ -102,8 +104,8 @@ function update(){
   updateCursor();
   document.querySelectorAll('[data-tool]').forEach(b=>{const d=definition(b.dataset.tool);b.hidden=d[4]!=='action'&&b.dataset.tool!=='move'&&b.dataset.tool!=='text'&&($('registration').value==='advanced'?simpleTools.has(b.dataset.tool):!simpleTools.has(b.dataset.tool));b.disabled=(b.dataset.tool==='legendPlace'&&(!image||!legendEntries().length))||!!d[5]&&d[5].some(src=>!symbolImages.get(src).complete||!symbolImages.get(src).naturalWidth);});
   $('removeLegend').disabled=!legendPlacement;
-  $('zoom').disabled=tool==='move';
-  $('viewport').style.overflow=tool==='move'?'hidden':'auto';
+  $('zoom').disabled=['move','delete'].includes(tool);
+  $('viewport').style.overflow=['move','delete'].includes(tool)?'hidden':'auto';
   $('modeHint').textContent=tool==='move'?'Zoom og panorering er låst. Dra eit objekt. Trykk knappen igjen for å teikne.':'Klyp eller bruk musehjulet for zoom · dra bakgrunnen for å panorere';
   document.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===tool)));
   $('finish').disabled=!image||pending.length<(definition(tool)[4]==='polygon'?3:2);
@@ -112,6 +114,7 @@ function update(){
   $('count').textContent=`${objects.length} objekt`;
   if(image)$('status').textContent=pending.length?`${pending.length} hjørne. Legg til fleire eller fullfør figuren.`:`${definition(tool)[1]}: ${tool==='text'?'skriv merknad og trykk på biletet.':definition(tool)[4]==='point'?'trykk for å plassere symbol.':'trykk for å leggje til hjørne.'}`;
   if(image&&tool==='move')$('status').textContent='Dra eit objekt eller teiknforklaringa for å flytte. Zoom og panorering er låst.';
+  if(tool==='delete'){$('modeHint').textContent='Trykk på objektet du vil slette. Angre gjenopprettar det.';if(image)$('status').textContent='Slett objekt: trykk på eit symbol, ei linje, eit polygon eller teiknforklaringa. Zoom og panorering er låst.';}
   if(image&&tool==='pan')$('status').textContent='Panorer: dra biletet. Trykk legg ikkje til symbol. Klyp eller bruk musehjulet for zoom.';
   if(image&&tool==='legendPlace')$('status').textContent='Trykk på biletet der øvre venstre hjørne av teiknforklaringa skal vere.';
 }
@@ -196,7 +199,7 @@ function restoreDrag(g){if(g.index==='legend')legendPlacement=g.savedLegend;else
 viewport.addEventListener('pointerdown',e=>{
   if(!image||e.button!==0)return;e.preventDefault();viewport.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size>=2){
-    if(tool==='move'){
+    if(['move','delete'].includes(tool)){
       if(gesture?.type==='single'&&gesture.moved&&gesture.index!==null)restoreDrag(gesture);
       gesture={type:'blocked'};return;
     }
@@ -217,6 +220,8 @@ viewport.addEventListener('pointermove',e=>{
     const scale=canvas.getBoundingClientRect().width/canvas.width;viewport.scrollLeft=gesture.anchor.x*scale-((a.x+b.x)/2-gesture.left);viewport.scrollTop=gesture.anchor.y*scale-((a.y+b.y)/2-gesture.top);$('zoom').value='';return;
   }
   const g=gesture,dx=e.clientX-g.x,dy=e.clientY-g.y;if(!g.moved&&Math.hypot(dx,dy)<8)return;
+  // Draging i slettemodus skal verken flytte, panorere eller slette noko.
+  if(tool==='delete'){g.moved=true;return;}
   if(!g.moved&&g.index!==null)remember();g.moved=true;
   updateCursor();
   if(g.index!==null){const scale=canvas.width/canvas.getBoundingClientRect().width;let x=dx*scale,y=dy*scale;
@@ -235,6 +240,14 @@ function endPointer(e){
   gesture=null;if(e.type==='pointercancel'){if(g?.moved&&g.index!==null)restoreDrag(g);return;}
   if(!g||g.moved||tool==='move'||tool==='pan')return;
   const p=position(e.clientX,e.clientY);if(p.x<0||p.y<0||p.x>canvas.width||p.y>canvas.height)return;
+  // Slett berre det øvste trefte objektet. Tom bakgrunn gjer ingenting.
+  // Teiknforklaringa ligg øvst, slik at objekt under panelet ikkje blir sletta.
+  if(tool==='delete'){
+    const legend=legendBounds();
+    if(legend&&p.x>=legend.x&&p.x<=legend.x+legend.w&&p.y>=legend.y&&p.y<=legend.y+legend.h){remember();legendPlacement=null;}
+    else{const index=hit(p);if(index===null)return;remember();objects.splice(index,1);}
+    render();update();return;
+  }
   if(tool==='legendPlace'){remember();legendPlacement=p;tool='pan';render();update();return;}
   if(definition(tool)[4]==='point'){
     const text=$('note').value.trim();if(tool==='text'&&!text){$('status').textContent='Skriv ein tekstmerknad først.';$('note').focus();return;}
@@ -247,7 +260,7 @@ viewport.addEventListener('pointerup',e=>{endPointer(e);updateCursor();});viewpo
 viewport.addEventListener('wheel',e=>{
   if(!image)return;
   e.preventDefault();
-  if(tool==='move'||pointers.size)return;
+  if(['move','delete'].includes(tool)||pointers.size)return;
   const anchor=position(e.clientX,e.clientY),r=viewport.getBoundingClientRect();
   const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?viewport.clientHeight:1);
   zoom=Math.max(1,Math.min(6,zoom*Math.exp(-Math.max(-500,Math.min(500,delta))*.002)));
@@ -263,23 +276,72 @@ $('finish').onclick=()=>{const minimum=definition(tool)[4]==='polygon'?3:2;if(pe
 $('cancel').onclick=()=>{pending=[];render();update();};
 $('undo').onclick=()=>{if(pending.length)pending.pop();else if(history.length){const state=JSON.parse(history.pop());objects=state.objects;legendPlacement=state.legendPlacement;}selected=null;render();update();};
 // Felt og vindaugsstorleik: oppdater visinga utan å endre eksisterande objekt.
-$('size').oninput=render;$('zoom').onchange=()=>{if(tool==='move')return;zoom=Number($('zoom').value)||zoom;layout();};window.addEventListener('resize',layout);
+$('size').oninput=render;$('zoom').onchange=()=>{if(['move','delete'].includes(tool))return;zoom=Number($('zoom').value)||zoom;layout();};window.addEventListener('resize',layout);
 // Modusbyte beheld fullførte objekt, men avbryt ei ufullført figur.
 $('registration').onchange=()=>{pending=[];selected=null;tool=$('registration').value==='advanced'?'advanced0':'bolt';update();render();};
 // TEIKNFORKLARING
 // Finn kvar brukt symboltype éin gong. Tekstmerknader har inga eiga forklaringsrad.
 function legendEntries(){return [...new Set(objects.filter(o=>o.tool!=='text').map(o=>o.tool))].map(id=>definition(id));}
-// Bygg eit eige kvitt panel. Lange namn blir delte i linjer før høgda blir sett.
-function buildLegend(){
-  const output=document.createElement('canvas'),width=Math.max(120,Math.round(canvas.width*.38)),height=0;
-  const entries=legendEntries(),font=Math.max(13,Math.round(width/26)),pad=font,row=font*2.4;
-  const measure=output.getContext('2d');measure.font=`${font}px system-ui`;
-  const wrap=text=>{const lines=[];let line='';for(const word of text.split(' ')){const next=line?line+' '+word:word;if(line&&measure.measureText(next).width>width-pad*5){lines.push(line);line=word;}else line=next;}lines.push(line);return lines;};
-  const rows=entries.map(d=>({d,lines:wrap(d[1])}));const extra=entries.length?pad*3+font+rows.reduce((n,r)=>n+Math.max(row,r.lines.length*font*1.35+pad),0):0;
-  output.width=width;output.height=Math.max(1,Math.ceil(extra));const out=output.getContext('2d');out.fillStyle='#fff';out.fillRect(0,0,output.width,output.height);
-  if(entries.length){out.font=`bold ${font}px system-ui`;out.fillStyle='#18372f';out.fillText('Teiknforklaring',pad,height+pad+font);let y=height+pad*2+font;
-    for(const {d,lines} of rows){const h=Math.max(row,lines.length*font*1.35+pad),size=font*1.25;out.fillStyle='#e7eae5';out.fillRect(pad,y,pad*2.6,h-pad/3);const points=d[4]==='point'?[{x:pad*2.3,y:y+h/2}]:d[4]==='polygon'?[{x:pad*1.3,y:y+h*.25},{x:pad*3.3,y:y+h*.25},{x:pad*3.3,y:y+h*.75},{x:pad*1.3,y:y+h*.75}]:[{x:pad*1.5,y:y+h/2},{x:pad*3.1,y:y+h/2}];draw(out,{tool:d[0],size,points});out.font=`${font}px system-ui`;out.fillStyle='#18372f';lines.forEach((line,i)=>out.fillText(line,pad*4.5,y+font+i*font*1.35));y+=h;}
-  }return output;
+// Tel berre enkeltboltar, ikkje boltesikringsområde eller eksisterande boltar.
+// advanced0–20 er lengd/diameter-variantar; advanced31 er bolt med boreretning.
+function isCountedBolt(id) {
+  return id === 'bolt' || id === 'advanced31' || /^advanced([0-9]|1[0-9]|20)$/.test(id);
+}
+function legendSummary() {
+  const counts = new Map();
+  for (const object of objects) counts.set(object.tool, (counts.get(object.tool) || 0) + 1);
+  const rows = legendEntries().map(d => ({
+    d,
+    label: isCountedBolt(d[0]) ? `${d[1]} (${counts.get(d[0])} stk.)` : d[1]
+  }));
+  const total = objects.filter(object => isCountedBolt(object.tool)).length;
+  return { rows, total };
+}
+// Mål teksten med same skrifttype som ved teikning. Panelet får akkurat
+// den breidda innhaldet treng, inkludert symbolfelt, overskrift og marg.
+// legendBounds() krympar panelet dersom det elles ville gått utanfor fotoet.
+function buildLegend() {
+  const output = document.createElement('canvas');
+  const { rows, total } = legendSummary();
+  const font = Math.max(13, Math.round(canvas.width / 68));
+  const pad = font, rowHeight = font * 2.4, textX = pad * 4.5;
+  const heading = 'Teiknforklaring';
+  const footer = `Totalt tal boltar: ${total} stk.`;
+  const measure = output.getContext('2d');
+  measure.font = `${font}px system-ui`;
+  const rowWidth = Math.max(0, ...rows.map(row => measure.measureText(row.label).width));
+  measure.font = `bold ${font}px system-ui`;
+  const titleWidth = Math.max(measure.measureText(heading).width, measure.measureText(footer).width);
+  output.width = Math.ceil(Math.max(textX + rowWidth + pad, titleWidth + pad * 2));
+  output.height = Math.ceil(pad * 4 + font * 2 + rows.length * rowHeight);
+
+  const out = output.getContext('2d');
+  out.fillStyle = '#fff';
+  out.fillRect(0, 0, output.width, output.height);
+  out.font = `bold ${font}px system-ui`;
+  out.fillStyle = '#18372f';
+  out.fillText(heading, pad, pad + font);
+  let y = pad * 2 + font;
+  for (const { d, label } of rows) {
+    const size = font * 1.25, h = rowHeight;
+    out.fillStyle = '#e7eae5';
+    out.fillRect(pad, y, pad * 2.6, h - pad / 3);
+    const points = d[4] === 'point'
+      ? [{ x: pad * 2.3, y: y + h / 2 }]
+      : d[4] === 'polygon'
+        ? [{ x: pad * 1.3, y: y + h * .25 }, { x: pad * 3.3, y: y + h * .25 },
+           { x: pad * 3.3, y: y + h * .75 }, { x: pad * 1.3, y: y + h * .75 }]
+        : [{ x: pad * 1.5, y: y + h / 2 }, { x: pad * 3.1, y: y + h / 2 }];
+    draw(out, { tool: d[0], size, points });
+    out.font = `${font}px system-ui`;
+    out.fillStyle = '#18372f';
+    out.fillText(label, textX, y + font);
+    y += h;
+  }
+  out.font = `bold ${font}px system-ui`;
+  out.fillStyle = '#18372f';
+  out.fillText(footer, pad, y + pad + font);
+  return output;
 }
 // Rekn ut faktisk plassering/storleik; krymp og avgrens panelet til fotoet.
 // Desse same måla blir brukte av teikning og trefftesten for flytting.
