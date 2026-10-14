@@ -322,8 +322,8 @@ function buildLegend() {
   output.height = Math.ceil(pad * 4 + font * 2 + rows.length * rowHeight + (footers.length - 1) * rowHeight);
 
   const out = output.getContext('2d');
-  // Berre bakgrunnen er halvvegs gjennomsiktig; tekst og symbol er uendra.
-  out.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  // Bakgrunnen er 75 % ugjennomsiktig; tekst og symbol er uendra.
+  out.fillStyle = 'rgba(255, 255, 255, 0.75)';
   out.fillRect(0, 0, output.width, output.height);
   out.font = `bold ${font}px system-ui`;
   out.fillStyle = '#18372f';
@@ -331,7 +331,7 @@ function buildLegend() {
   let y = pad * 2 + font;
   for (const { d, label } of rows) {
     const size = font * 1.25, h = rowHeight;
-    out.fillStyle = 'rgba(231, 234, 229, 0.5)';
+    out.fillStyle = 'rgba(231, 234, 229, 0.75)';
     out.fillRect(pad, y, pad * 2.6, h - pad / 3);
     const points = d[4] === 'point'
       ? [{ x: pad * 2.3, y: y + h / 2 }]
@@ -354,7 +354,9 @@ function buildLegend() {
 // Desse same måla blir brukte av teikning og trefftesten for flytting.
 function legendBounds(){
   if(!legendPlacement||!legendEntries().length)return null;
-  const panel=buildLegend(),scale=Math.min(1,canvas.width/panel.width,canvas.height/panel.height),w=panel.width*scale,h=panel.height*scale;
+  // Skaler heile panelet, men hald det alltid innanfor fotoet.
+  const panel=buildLegend(),requestedScale=(Number($('legendScale').value)||100)/100;
+  const scale=Math.min(requestedScale,canvas.width/panel.width,canvas.height/panel.height),w=panel.width*scale,h=panel.height*scale;
   const x=Math.max(0,Math.min(legendPlacement.x,canvas.width-w)),y=Math.max(0,Math.min(legendPlacement.y,canvas.height-h));
   return {panel,x,y,w,h};
 }
@@ -363,6 +365,10 @@ function drawPlacedLegend(c){
   const bounds=legendBounds();if(!bounds)return;
   const {panel,x,y,w,h}=bounds;c.drawImage(panel,x,y,w,h);
 }
+$('legendScale').oninput=()=>{
+  $('legendScaleValue').textContent=`${$('legendScale').value} %`;
+  render();
+};
 // EKSPORT
 // Lag ei separat teikneflate i valt oppløysing. factor=0.5 gir halv breidd/høgd.
 // Zoom på skjermen påverkar ikkje eksporten; arbeidsfotoet blir brukt direkte.
